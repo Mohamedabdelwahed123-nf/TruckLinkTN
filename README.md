@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # TruckLink TN
 
 Plateforme de réservation de camions semi-remorques pour le transport de marchandises longue distance en Tunisie.
@@ -48,3 +49,6 @@ La plateforme sera accessible sur `http://localhost:3000`.
 - `src/components/` : Composants UI réutilisables.
 - `src/lib/integrations.ts` : Centralise la logique des APIs Tiers (Vision, Maps, Paiement).
 - `prisma/schema.prisma` : Architecture DB.
+=======
+# TruckLinkTN
+>>>>>>> c0451260a8017879da462115dde852bc29a2af48
