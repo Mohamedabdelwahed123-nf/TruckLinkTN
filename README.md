@@ -1,36 +1,50 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# TruckLink TN
 
-## Getting Started
+Plateforme de réservation de camions semi-remorques pour le transport de marchandises longue distance en Tunisie.
 
-First, run the development server:
+## Tech Stack
+- **Frontend** : Next.js 14 (App Router), TailwindCSS, shadcn/ui
+- **Backend / DB** : API Routes Next.js, Prisma ORM, PostgreSQL
+- **Auth** : NextAuth.js
+- **API Externes** : Google Maps, ClickToPay.tn, Vidange.tn, OpenAI Vision API
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## Prérequis
+- Node.js >= 18
+- PostgreSQL local ou distant
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Installation & Démarrage
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1. **Installer les dépendances**
+   ```bash
+   npm install
+   ```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+2. **Configuration**
+   Copiez `.env.example` vers `.env` et ajustez `DATABASE_URL` et `NEXTAUTH_SECRET`.
+   ```bash
+   cp .env.example .env
+   ```
 
-## Learn More
+3. **Base de données**
+   Générez le client Prisma et synchronisez la base de données.
+   ```bash
+   npx prisma generate
+   npx prisma db push
+   ```
 
-To learn more about Next.js, take a look at the following resources:
+4. **Lancer le serveur de développement**
+   ```bash
+   npm run dev
+   ```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+La plateforme sera accessible sur `http://localhost:3000`.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Déploiement
+- **Frontend / API** : Déploiement optimal sur Vercel : connectez votre dépôt GitHub.
+- **Base de données** : Supabase, Railway ou Render recommandés pour PostgreSQL.
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Structure Clé
+- `src/app/` : Pages (Home, Auth, Search, Driver, Admin, Tracking, Checkout).
+- `src/components/` : Composants UI réutilisables.
+- `src/lib/integrations.ts` : Centralise la logique des APIs Tiers (Vision, Maps, Paiement).
+- `prisma/schema.prisma` : Architecture DB.

@@ -1,13 +1,234 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
+}
+
+enum Role {
+  CLIENT
+  DRIVER
+  ADMIN
+}
+
+enum DocumentType {
+  CIN_FRONT
+  CIN_BACK
+  DRIVING_LICENSE
+  VEHICLE_REGISTRATION
+  INSURANCE
+}
+
+enum DocumentStatus {
+  PENDING
+  VALID
+  INVALID
+  EXPIRED
+}
+
+enum TripStatus {
+  PLANNED
+  ONGOING
+  COMPLETED
+  CANCELLED
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  REFUNDED
+}
+
+model Account {
+  id                 String  @id @default(cuid())
+  userId             String
+  type               String
+  provider           String
+  providerAccountId  String
+  refresh_token      String?  @db.Text
+  access_token       String?  @db.Text
+  expires_at         Int?
+  token_type         String?
+  scope              String?
+  id_token           String?  @db.Text
+  session_state      String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  phoneNumber   String?   @unique
+  password      String?
+  role          Role      @default(CLIENT)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts      Account[]
+  sessions      Session[]
+  driverProfile DriverProfile?
+  bookings      Booking[]
+  reviews       Review[]       @relation("UserReviews")
+  givenReviews  Review[]       @relation("GivenReviews")
+}
+
+model DriverProfile {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cinNumber   String?  @unique
+  isVerified  Boolean  @default(false)
+  rating      Float    @default(0.0)
+  totalTrips  Int      @default(0)
+  
+  documents   Document[]
+  trucks      Truck[]
+  trips       Trip[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Document {
+  id           String         @id @default(cuid())
+  driverId     String
+  driver       DriverProfile  @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  type         DocumentType
+  url          String
+  status       DocumentStatus @default(PENDING)
+  extractedData Json?
+  adminNotes   String?
+  
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+}
+
+model Truck {
+  id           String        @id @default(cuid())
+  driverId     String
+  driver       DriverProfile @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  vin          String        @unique
+  brand        String?
+  model        String?
+  year         Int?
+  payloadMax   Float?
+  truckType    String?
+  images       String[]
+  dimensions   String?
+  isVerified   Boolean       @default(false)
+
+  trips        Trip[]
+
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+}
+
+model Trip {
+  id               String        @id @default(cuid())
+  driverId         String
+  driver           DriverProfile @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  truckId          String
+  truck            Truck         @relation(fields: [truckId], references: [id])
+  
+  departureCity    String
+  arrivalCity      String
+  departureDate    DateTime
+  arrivalDate      DateTime?
+  
+  capacityAvailable Float
+  pricePerKm       Float?
+  flatRate         Float?
+  
+  status           TripStatus    @default(PLANNED)
+  currentLocation  Json?         // { lat, lng, updatedAt }
+  
+  bookings         Booking[]
+  
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+}
+
+model Booking {
+  id             String        @id @default(cuid())
+  clientId       String
+  client         User          @relation(fields: [clientId], references: [id])
+  tripId         String
+  trip           Trip          @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  
+  cargoType      String
+  weight         Float         // Client's requested weight
+  pickupAddress  String
+  dropoffAddress String
+  
+  status         BookingStatus @default(PENDING)
+  totalPrice     Float?
+  
+  payment        Payment?
+  review         Review?
+  
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+}
+
+model Payment {
+  id             String         @id @default(cuid())
+  bookingId      String         @unique
+  booking        Booking        @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  
+  amount         Float
+  currency       String         @default("TND")
+  status         PaymentStatus  @default(PENDING)
+  transactionId  String?        @unique
+  gatewayPayload Json?
+  
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+}
+
+model Review {
+  id          String   @id @default(cuid())
+  bookingId   String   @unique
+  booking     Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  
+  authorId    String
+  author      User     @relation("GivenReviews", fields: [authorId], references: [id])
+  targetId    String   // Typically the driver's User ID
+  target      User     @relation("UserReviews", fields: [targetId], references: [id])
+  
+  rating      Int      // 1-5
+  comment     String?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
